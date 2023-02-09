@@ -27,14 +27,33 @@ fullBuildCommand << (props.verbose ? "--verbose" : "")
 fullBuildCommand << (props.propFiles ? "--propFiles ${props.propFiles}" : "")
 fullBuildCommand << "--fullBuild"
 
+// Create full build command
+def userBuildCommand = []
+userBuildCommand << "${dbbHome}/bin/groovyz"
+userBuildCommand << "${props.zAppBuildDir}/build.groovy"
+userBuildCommand << "--workspace ${props.workspace}"
+userBuildCommand << "--application ${props.app}"
+userBuildCommand << (props.outDir ? "--outDir ${props.outDir}" : "--outDir ${props.zAppBuildDir}/out")
+userBuildCommand << "--hlq ${props.hlq}"
+userBuildCommand << "--logEncoding UTF-8"
+userBuildCommand << "--url ${props.url}"
+userBuildCommand << "--id ${props.id}"
+userBuildCommand << (props.pw ? "--pw ${props.pw}" : "--pwFile ${props.pwFile}")
+userBuildCommand << (props.verbose ? "--verbose" : "")
+userBuildCommand << (props.propFiles ? "--propFiles ${props.propFiles}" : "")
+userBuildCommand << "--userBuild ${props.userBuild_languageConfigurations_buildFile}"
+
 try {
+	
+
+	/** Test FullBuild **/
 
 	// update language definitions files in Git repo
-	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs.split(',')
+	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild.split(',')
 	langDefs.each{ langDef ->
-		copyAndCommitBuildConfig(langDef.trim())
+		copyBuildConfiguration(langDef.trim())
 	}
-	
+		
 	// Run full build
 	println "** Executing ${fullBuildCommand.join(" ")}"
 	def process = [
@@ -47,10 +66,9 @@ try {
 
 	//Validate build results
 	println "** Validating full build with language configuration results"
-	def expectedFilesBuiltList = props.fullBuild_languageConfigurations_expectedFilesBuilt.split(',')
+	def expectedFilesBuiltList = props.fullBuild_languageConfigurations_expectedFilesBuilt_fullBuild.split(',')
 
 	@Field def assertionList = []
-
 
 	// Validate clean build
 	assert outputStream.contains("Build State : CLEAN") : "*! FULL BUILD FAILED\nOUTPUT STREAM:\n$outputStream\n"
@@ -60,7 +78,7 @@ try {
 	assert outputStream.contains("Total files processed : ${numFullFiles}") : "*! TOTAL FILES PROCESSED ARE NOT EQUAL TO ${numFullFiles}\nOUTPUT STREAM:\n$outputStream\n"
 
 	// Obtain property mapping of prints in the console for compile compileParms
-	PropertyMappings compileParmsofFiles = new PropertyMappings("fullBuild_languageConfigurations_compileParms")
+	PropertyMappings compileParmsofFiles = new PropertyMappings("fullBuild_languageConfigurations_compileParms_fullBuild")
 	// Iterate over build list
 	expectedFilesBuiltList.each { file ->
 		def expectedCompilerParms = compileParmsofFiles.getValue(file)
@@ -70,9 +88,61 @@ try {
 	// Validate expected built files in output stream
 	assert expectedFilesBuiltList.count{ i-> outputStream.contains(i) } == expectedFilesBuiltList.size() : "*! FILES PROCESSED IN THE FULL BUILD DOES NOT CONTAIN THE LIST OF FILES PASSED ${expectedFilesBuiltList}\nOUTPUT STREAM:\n$outputStream\n"
 	
+	// reset language configuration changes
+	resetLanguageConfigurationChanges()
+	
 	println "**"
 	println "** FULL BUILD TEST Language Configurations: PASSED **"
 	println "**"
+	
+	/** Test UserBuild overwride existing build property **/
+	
+	// update language definitions files in Git repo
+	def langDefs = copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC1)
+	
+	// Run user build
+	println "** Executing ${userBuildCommand.join(" ")}"
+	process = [
+		'bash',
+		'-c',
+		userBuildCommand.join(" ")
+	].execute()
+	outputStream = new StringBuffer();
+	process.waitForProcessOutput(outputStream, System.err)
+	
+	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message01_TC1) : "*! Message (${props.userBuild_languageConfigurations_expected_message01_TC1}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
+	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message02_TC1) : "*! Message (${props.userBuild_languageConfigurations_expected_message02_TC1}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
+	
+	
+	println "**"
+	println "** USER BUILD TEST Language Configurations OVERRIDE FILE PROPERTY: PASSED **"
+	println "**"
+	
+	/** Test UserBuild unable to override  existing build property **/ 
+	
+	// update language definitions files in Git repo
+	def langDefs = copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC2)
+	
+	// Run user build
+	println "** Executing ${userBuildCommand.join(" ")}"
+	process = [
+		'bash',
+		'-c',
+		userBuildCommand.join(" ")
+	].execute()
+	outputStream = new StringBuffer();
+	process.waitForProcessOutput(outputStream, System.err)
+	
+	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message01_TC2) : "*! Message (${props.userBuild_languageConfigurations_expected_message01_TC2}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
+	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message02_TC2) : "*! Message (${props.userBuild_languageConfigurations_expected_message02_TC2}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
+	
+	
+	println "**"
+	println "** USER BUILD TEST Language Configurations FAILING OVERRIDE FILE PROPERTY: PASSED **"
+	println "**"
+	
+	
+	
 }
 catch(AssertionError e) {
 	def result = e.getMessage()
@@ -97,13 +167,31 @@ finally {
 // Method Definitions
 //*************************************************************
 
-def copyAndCommitBuildConfig(String configFile) {
+def copyBuildConfiguration(String configFile) {
 	println "** Copying and committing ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
 	def commands = """
 	cp ${props.zAppBuildDir}/test/applications/${props.app}/$configFile ${props.zAppBuildDir}/$configFile
+"""
+	def task = ['bash', '-c', commands].execute()
+	def outputStream = new StringBuffer();
+	task.waitForProcessOutput(outputStream, System.err)
+}
+
+def copyFileProperties(String configFile) {
+	println "** Copying and committing ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
+	def commands = """
+	cp ${props.zAppBuildDir}/test/applications/${props.app}/$configFile ${props.appLocation}/application-conf/file.properties
+"""
+	def task = ['bash', '-c', commands].execute()
+	def outputStream = new StringBuffer();
+	task.waitForProcessOutput(outputStream, System.err)
+}
+
+def resetLanguageConfigurationChanges() {
+	println "** Copying and committing ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
+	def commands = """
 	cd ${props.appLocation}/
-	git add .
-	git commit . -m "updated language configuration file"
+	git reset --hard"
 """
 	def task = ['bash', '-c', commands].execute()
 	def outputStream = new StringBuffer();
