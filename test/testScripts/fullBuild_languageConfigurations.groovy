@@ -188,7 +188,7 @@ def copyFileProperties(String configFile) {
 }
 
 def resetLanguageConfigurationChanges() {
-	println "** Copying and committing ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
+	println "** Resetting language configuration changes" 
 	def commands = """
 	cd ${props.appLocation}/
 	git reset --hard"
