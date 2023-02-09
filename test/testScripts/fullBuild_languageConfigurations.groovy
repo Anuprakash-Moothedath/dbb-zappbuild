@@ -98,7 +98,7 @@ try {
 	/** Test UserBuild overwride existing build property **/
 	
 	// update language definitions files in Git repo
-	def langDefs = copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC1)
+	copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC1)
 	
 	// Run user build
 	println "** Executing ${userBuildCommand.join(" ")}"
@@ -121,7 +121,7 @@ try {
 	/** Test UserBuild unable to override  existing build property **/ 
 	
 	// update language definitions files in Git repo
-	def langDefs = copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC2)
+	copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC2)
 	
 	// Run user build
 	println "** Executing ${userBuildCommand.join(" ")}"
@@ -138,7 +138,7 @@ try {
 	
 	
 	println "**"
-	println "** USER BUILD TEST Language Configurations FAILING OVERRIDE FILE PROPERTY: PASSED **"
+	println "** USER BUILD TEST Language Configurations TEST with FAILING OVERRIDE FILE PROPERTY: PASSED **"
 	println "**"
 	
 	
