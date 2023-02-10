@@ -48,11 +48,8 @@ try {
 
 	/** Test FullBuild **/
 
-	// update language definitions files in Git repo
-	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild.split(',')
-	langDefs.each{ langDef ->
-		copyBuildConfiguration(langDef.trim())
-	}
+	// update language definitions files in workspace
+	copyLanguageConfigurations(props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild)
 		
 	// Run full build
 	println "** Executing ${fullBuildCommand.join(" ")}"
@@ -88,7 +85,7 @@ try {
 	// Validate expected built files in output stream
 	assert expectedFilesBuiltList.count{ i-> outputStream.contains(i) } == expectedFilesBuiltList.size() : "*! FILES PROCESSED IN THE FULL BUILD DOES NOT CONTAIN THE LIST OF FILES PASSED ${expectedFilesBuiltList}\nOUTPUT STREAM:\n$outputStream\n"
 	
-	// reset language configuration changes
+	// reset language configuration changes in workspace to cleanup
 	resetLanguageConfigurationChanges()
 	
 	println "**"
@@ -97,13 +94,10 @@ try {
 	
 	/** Test UserBuild overwride existing build property **/
 	
-	// update language definitions files in Git repo
-	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild.split(',')
-	langDefs.each{ langDef ->
-		copyBuildConfiguration(langDef.trim())
-	}
+	// update language definitions files in workspace
+	copyLanguageConfigurations(props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild)
 	
-	// update language definitions files in Git repo
+	// update file.propertes in workspace
 	copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC1)
 	
 	// Run user build
@@ -119,7 +113,7 @@ try {
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message01_TC1) : "*! Message (${props.userBuild_languageConfigurations_expected_message01_TC1}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message02_TC1) : "*! Message (${props.userBuild_languageConfigurations_expected_message02_TC1}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	
-	// reset language configuration changes
+	// reset language configuration changes in workspace to cleanup
 	resetLanguageConfigurationChanges()
 	
 	println "**"
@@ -128,13 +122,10 @@ try {
 	
 	/** Test UserBuild unable to override  existing build property **/ 
 	
-	// update language definitions files in Git repo
-	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild.split(',')
-	langDefs.each{ langDef ->
-		copyBuildConfiguration(langDef.trim())
-	}
+	// update language definitions files in workspace
+	copyLanguageConfigurations(props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild)
 	
-	// update language definitions files in Git repo
+	// update file.propertes in workspace
 	copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC2)
 	
 	// Run user build
@@ -150,7 +141,7 @@ try {
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message01_TC2) : "*! Message (${props.userBuild_languageConfigurations_expected_message01_TC2}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message02_TC2) : "*! Message (${props.userBuild_languageConfigurations_expected_message02_TC2}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	
-	// reset language configuration changes
+	// reset language configuration changes in workspace to cleanup
 	resetLanguageConfigurationChanges()
 	
 	println "**"
@@ -185,6 +176,13 @@ finally {
 //*************************************************************
 // Method Definitions
 //*************************************************************
+
+def copyLanguageConfigurations(String languageConfigs) {
+	def langDefs = languageConfigs.split(',')
+	langDefs.each{ langDef ->
+		copyBuildConfiguration(langDef.trim())
+	}
+}
 
 def copyBuildConfiguration(String configFile) {
 	println "** Copying ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
