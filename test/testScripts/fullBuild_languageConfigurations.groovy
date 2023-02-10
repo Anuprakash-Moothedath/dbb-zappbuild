@@ -98,6 +98,12 @@ try {
 	/** Test UserBuild overwride existing build property **/
 	
 	// update language definitions files in Git repo
+	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild.split(',')
+	langDefs.each{ langDef ->
+		copyBuildConfiguration(langDef.trim())
+	}
+	
+	// update language definitions files in Git repo
 	copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC1)
 	
 	// Run user build
@@ -113,12 +119,20 @@ try {
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message01_TC1) : "*! Message (${props.userBuild_languageConfigurations_expected_message01_TC1}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message02_TC1) : "*! Message (${props.userBuild_languageConfigurations_expected_message02_TC1}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	
+	// reset language configuration changes
+	resetLanguageConfigurationChanges()
 	
 	println "**"
-	println "** USER BUILD TEST Language Configurations OVERRIDE FILE PROPERTY: PASSED **"
+	println "** USER BUILD TEST Language Configurations TEST 1 OVERRIDE FILE PROPERTY: PASSED **"
 	println "**"
 	
 	/** Test UserBuild unable to override  existing build property **/ 
+	
+	// update language definitions files in Git repo
+	def langDefs = props.fullBuild_languageConfigurations_updatedLanguageConfigs_fullBuild.split(',')
+	langDefs.each{ langDef ->
+		copyBuildConfiguration(langDef.trim())
+	}
 	
 	// update language definitions files in Git repo
 	copyFileProperties(props.userBuild_languageConfigurations_fileProperties_TC2)
@@ -136,9 +150,11 @@ try {
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message01_TC2) : "*! Message (${props.userBuild_languageConfigurations_expected_message01_TC2}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	assert outputStream.contains(props.userBuild_languageConfigurations_expected_message02_TC2) : "*! Message (${props.userBuild_languageConfigurations_expected_message02_TC2}) could not be found\nOUTPUT STREAM:\n$outputStream\n"
 	
+	// reset language configuration changes
+	resetLanguageConfigurationChanges()
 	
 	println "**"
-	println "** USER BUILD TEST Language Configurations TEST with FAILING OVERRIDE FILE PROPERTY: PASSED **"
+	println "** USER BUILD TEST Language Configurations TEST 2 with FAILING OVERRIDE FILE PROPERTY: PASSED **"
 	println "**"
 	
 	
@@ -151,11 +167,14 @@ catch(AssertionError e) {
 }
 finally {
 	cleanUpDatasets()
+	// reset language configuration changes
+	resetLanguageConfigurationChanges()
+	
 	if (assertionList.size()>0) {
 		println "\n***"
-	println "**START OF FAILED FULL BUILD TEST Language Configurations TEST RESULTS**\n"
-	println "*FAILED FULL BUILD TEST Language Configurations RESULTS*\n" + assertionList
-	println "\n**END OF FAILED FULL BUILD TEST Language Configurations **"
+	println "**START OF FAILED TEST CASE for Language Configuration Overrides TEST RESULTS**\n"
+	println "*FAILED TEST CASE for Language Configurations RESULTS*\n" + assertionList
+	println "\n**END OF FAILED TEST CASE for Language Configurations **"
 	println "***"
   }
 	
@@ -168,7 +187,7 @@ finally {
 //*************************************************************
 
 def copyBuildConfiguration(String configFile) {
-	println "** Copying and committing ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
+	println "** Copying ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
 	def commands = """
 	cp ${props.zAppBuildDir}/test/applications/${props.app}/$configFile ${props.zAppBuildDir}/$configFile
 """
@@ -178,7 +197,7 @@ def copyBuildConfiguration(String configFile) {
 }
 
 def copyFileProperties(String configFile) {
-	println "** Copying and committing ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
+	println "** Copying ${props.zAppBuildDir}/test/applications/${props.app}/$configFile to ${props.zAppBuildDir}/"
 	def commands = """
 	cp ${props.zAppBuildDir}/test/applications/${props.app}/$configFile ${props.appLocation}/application-conf/file.properties
 """
@@ -190,8 +209,7 @@ def copyFileProperties(String configFile) {
 def resetLanguageConfigurationChanges() {
 	println "** Resetting language configuration changes" 
 	def commands = """
-	cd ${props.appLocation}/
-	git reset --hard"
+	git -C ${props.appLocation} reset --hard
 """
 	def task = ['bash', '-c', commands].execute()
 	def outputStream = new StringBuffer();
